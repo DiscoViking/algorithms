@@ -1,4 +1,35 @@
-// Simple stack implementation.
+//! Simple generic stack implementation.
+//! 
+//! # Examples
+//!
+//! ```
+//! use algorithms::stack::Stack;
+//! 
+//! let mut s = Stack::<i32>::new();
+//! s.push(5);
+//! s.push(147);
+//!
+//! assert_eq!(s.pop(), Some(147));
+//! assert_eq!(s.pop(), Some(5));
+//! assert_eq!(s.pop(), None);
+//! ```
+//! 
+//! ```
+//! use algorithms::stack::Stack;
+//! 
+//! let mut s = Stack::<&'static str>::new();
+//! s.push("World");
+//! s.push("Hello");
+//! 
+//! let mut v = Vec::<&'static str>::new();
+//!
+//! for t in s {
+//!     v.push(t);
+//! }
+//!
+//! assert_eq!(v[0], "Hello");
+//! assert_eq!(v[1], "World");
+//! ```
 
 #[derive(Debug)]
 pub struct Stack<T> {
@@ -41,24 +72,13 @@ impl<T> Stack<T> {
     }
 }
 
-// We may iterate over a stack by repeatedly popping items until empty.
+/// We may iterate over a stack by repeatedly popping items until empty.
 impl<T> Iterator for Stack<T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.pop()
     }
-}
-
-#[test]
-fn push_pop_integers() {
-    let mut s = Stack::<i32>::new();
-    assert_eq!(s.pop(), None);
-    s.push(5);
-    s.push(11);
-    assert_eq!(s.pop(), Some(11));
-    assert_eq!(s.pop(), Some(5));
-    assert_eq!(s.pop(), None);
 }
 
 #[test]
@@ -80,20 +100,4 @@ fn push_pop_ptrs() {
     assert_eq!(s.pop(), Some(&b));
     assert_eq!(s.pop(), Some(&a));
     assert_eq!(s.pop(), None);
-}
-
-#[test]
-fn iterate() {
-    let mut s = Stack::<&'static str>::new();
-    s.push("World");
-    s.push("Hello");
-    
-    let mut v = Vec::<&'static str>::new();
-
-    for t in s {
-        v.push(t);
-    }
-
-    assert_eq!(v[0], "Hello");
-    assert_eq!(v[1], "World");
 }
