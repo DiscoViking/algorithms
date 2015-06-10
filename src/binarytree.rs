@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 
+#[derive(Debug)]
 pub struct BinaryTree<T> where T: Ord + Copy {
     val: Option<T>,
     left: Option<Box<BinaryTree<T>>>,
@@ -46,6 +47,102 @@ impl<T> BinaryTree<T> where T: Ord + Copy {
         };
 
         Ok(val)
+    }
+
+    pub fn remove(&mut self, val: T) -> Result<T, T> {
+        // Deal with the empty case first.
+        if self.val.is_none() {
+            return Err(val);
+        }
+
+        match val.cmp(self.val.as_ref().unwrap()) {
+            Ordering::Less => {
+                match self.left {
+                    None => Err(val),
+                    Some(ref mut t) => t.remove(val),
+                }
+            }
+
+            Ordering::Greater => {
+                match self.right {
+                    None => Err(val),
+                    Some(ref mut t) => t.remove(val),
+                }
+            }
+
+            Ordering::Equal => {
+                let result = Ok(self.val.take().unwrap());
+
+                let (new_val, new_left, new_right) = match self {
+                    // No subtrees.
+                    // Tree is empty.
+                    &mut BinaryTree{left: None, right: None, ..} => {
+                        (None, None, None)
+                    },
+
+                    // Only one subtree.
+                    // Just replace this node with it.
+                    &mut BinaryTree{left: None, right: Some(ref mut t), ..} |
+                    &mut BinaryTree{left: Some(ref mut t), right: None, ..} => {
+                        (t.val.take(), t.left.take(), t.right.take())
+                    },
+
+                    // Have both subtrees.
+                    // This is the difficult case.
+                    &mut BinaryTree{
+                        left: Some(ref mut l),
+                        right: Some(_),
+                        ..
+                    } => {
+                        let v = l.collapse_rightmost();
+                        (v, None, self.right.take())
+                    },
+                };
+
+                self.val = new_val;
+                self.left = new_left;
+                self.right = new_right;
+
+                result
+            }
+        }
+    }
+
+    // Remove the rightmost value in tree and return its value.
+    fn collapse_rightmost(&mut self) -> Option<T> {
+        let (val, del_right) = match self.right {
+            None => (self.val.take(), false),
+            Some(ref mut t) => {
+                let v = t.collapse_rightmost();
+                (v, t.val.is_none())
+            },
+        };
+
+        if del_right {
+            self.right = self.right.take().unwrap().left.take();
+        }
+
+        val
+    }
+
+    // Deletes any empty children.
+    fn prune(&mut self) {
+        let del_left = match self.left {
+            None => false,
+            Some(ref t) => t.val.is_none(),
+        };
+
+        let del_right = match self.right {
+            None => false,
+            Some(ref t) => t.val.is_none(),
+        };
+
+        if del_left {
+            self.left = None;
+        }
+        if del_right {
+            self.right = None;
+        }
     }
 }
 
