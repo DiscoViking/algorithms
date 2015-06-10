@@ -264,6 +264,46 @@ fn remove_nonexistent() {
     assert!(t.insert(5).is_ok());
     assert!(t.insert(1).is_ok());
     assert!(t.remove(14).is_err());
+    assert!(t.remove(0).is_err());
     assert!(t.insert(14).is_ok());
     assert!(t.remove(14).is_ok());
+}
+
+#[test]
+fn remove_left() {
+    let mut t = BinaryTree::<i32>::new();
+    // Set the tree up how we want.
+    assert!(t.insert(3).is_ok());
+    assert!(t.insert(5).is_ok());
+    assert!(t.insert(1).is_ok());
+
+    assert!(t.remove(1).is_ok());
+}
+
+#[test]
+fn remove_recursive_collapse() {
+    let mut t = BinaryTree::<i32>::new();
+    // Set the tree up how we want.
+    assert!(t.insert(5).is_ok());
+    assert!(t.insert(3).is_ok());
+    assert!(t.insert(1).is_ok());
+    assert!(t.insert(4).is_ok());
+    assert!(t.insert(8).is_ok());
+
+    // Check the tree is how we want.
+    assert_eq!(t.val.unwrap(), 5);
+    assert_eq!(t.left.as_ref().unwrap().val.unwrap(), 3);
+    assert_eq!(t.left.as_ref().unwrap().left.as_ref().unwrap().val.unwrap(), 1);
+    assert_eq!(t.left.as_ref().unwrap().right.as_ref().unwrap().val.unwrap(), 4);
+    assert_eq!(t.right.as_ref().unwrap().val.unwrap(), 8);
+
+    // Remove the root.
+    assert!(t.remove(5).is_ok());
+
+    // Check the tree is how we expect.
+    assert_eq!(t.val.unwrap(), 4);
+    assert_eq!(t.left.as_ref().unwrap().val.unwrap(), 3);
+    assert_eq!(t.left.as_ref().unwrap().left.as_ref().unwrap().val.unwrap(), 1);
+    assert!(t.left.as_ref().unwrap().right.is_none());
+    assert_eq!(t.right.as_ref().unwrap().val.unwrap(), 8);
 }
