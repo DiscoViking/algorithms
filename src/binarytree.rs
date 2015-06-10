@@ -49,13 +49,15 @@ impl<T> BinaryTree<T> where T: Ord + Copy {
         Ok(val)
     }
 
+    // Removes matching node from the tree.
+    // Returns it if successful, errors with given value otherwise.
     pub fn remove(&mut self, val: T) -> Result<T, T> {
         // Deal with the empty case first.
         if self.val.is_none() {
             return Err(val);
         }
 
-        match val.cmp(self.val.as_ref().unwrap()) {
+        let result = match val.cmp(self.val.as_ref().unwrap()) {
             Ordering::Less => {
                 match self.left {
                     None => Err(val),
@@ -95,7 +97,8 @@ impl<T> BinaryTree<T> where T: Ord + Copy {
                         ..
                     } => {
                         let v = l.collapse_rightmost();
-                        (v, None, self.right.take())
+                        let copy = BinaryTree{val: l.val.take(), left: l.left.take(), right: l.right.take()};
+                        (v, Some(Box::new(copy)), self.right.take())
                     },
                 };
 
@@ -105,22 +108,21 @@ impl<T> BinaryTree<T> where T: Ord + Copy {
 
                 result
             }
-        }
+        };
+
+        self.prune();
+
+        result
     }
 
     // Remove the rightmost value in tree and return its value.
     fn collapse_rightmost(&mut self) -> Option<T> {
-        let (val, del_right) = match self.right {
-            None => (self.val.take(), false),
-            Some(ref mut t) => {
-                let v = t.collapse_rightmost();
-                (v, t.val.is_none())
-            },
+        let val = match self.right {
+            None => self.val.take(),
+            Some(ref mut t) => t.collapse_rightmost(),
         };
 
-        if del_right {
-            self.right = self.right.take().unwrap().left.take();
-        }
+        self.prune();
 
         val
     }
@@ -152,7 +154,7 @@ fn insert() {
     assert!(t.insert(3).is_ok());
     assert!(t.insert(5).is_ok());
     assert_eq!(t.val.unwrap(), 3);
-    assert_eq!(t.right.unwrap().val.unwrap(), 5);
+    assert_eq!(t.right.as_ref().unwrap().val.unwrap(), 5);
 }
 
 #[test]
@@ -165,4 +167,103 @@ fn duplicate() {
     assert!(t.insert(5).is_err());
     assert!(t.insert(3).is_err());
     assert!(t.insert(5).is_err());
+}
+
+#[test]
+fn remove_no_children() {
+    let mut t = BinaryTree::<i32>::new();
+    // Set the tree up how we want.
+    assert!(t.insert(3).is_ok());
+    assert!(t.insert(5).is_ok());
+
+    // Check it's how we expect.
+    assert_eq!(t.val.unwrap(), 3);
+    assert_eq!(t.right.as_ref().unwrap().val.unwrap(), 5);
+
+    // Remove the leaf node.
+    assert!(t.remove(5).is_ok());
+
+    // Check the root no longer points anywhere.
+    assert!(t.left.is_none());
+    assert!(t.right.is_none());
+
+    // Remove the root.
+    assert!(t.remove(3).is_ok());
+
+    // Check it's now empty.
+    assert!(t.val.is_none());
+}
+
+#[test]
+fn remove_left_child() {
+    let mut t = BinaryTree::<i32>::new();
+    // Set the tree up how we want.
+    assert!(t.insert(3).is_ok());
+    assert!(t.insert(1).is_ok());
+
+    // Check it's how we expect.
+    assert_eq!(t.val.unwrap(), 3);
+    assert_eq!(t.left.as_ref().unwrap().val.unwrap(), 1);
+
+    // Remove the root node.
+    assert!(t.remove(3).is_ok());
+
+    // Check the root now contains 5, and nothing else.
+    assert_eq!(t.val.unwrap(), 1);
+    assert!(t.left.is_none());
+    assert!(t.right.is_none());
+}
+
+#[test]
+fn remove_right_child() {
+    let mut t = BinaryTree::<i32>::new();
+    // Set the tree up how we want.
+    assert!(t.insert(3).is_ok());
+    assert!(t.insert(5).is_ok());
+
+    // Check it's how we expect.
+    assert_eq!(t.val.unwrap(), 3);
+    assert_eq!(t.right.as_ref().unwrap().val.unwrap(), 5);
+
+    // Remove the root node.
+    assert!(t.remove(3).is_ok());
+
+    // Check the root now contains 5, and nothing else.
+    assert_eq!(t.val.unwrap(), 5);
+    assert!(t.left.is_none());
+    assert!(t.right.is_none());
+}
+
+#[test]
+fn remove_both_children() {
+    let mut t = BinaryTree::<i32>::new();
+    // Set the tree up how we want.
+    assert!(t.insert(3).is_ok());
+    assert!(t.insert(5).is_ok());
+    assert!(t.insert(1).is_ok());
+
+    // Check it's how we expect.
+    assert_eq!(t.val.unwrap(), 3);
+    assert_eq!(t.left.as_ref().unwrap().val.unwrap(), 1);
+    assert_eq!(t.right.as_ref().unwrap().val.unwrap(), 5);
+
+    // Remove the root node.
+    assert!(t.remove(3).is_ok());
+
+    // Check the tree is now how we expect.
+    assert_eq!(t.val.unwrap(), 1);
+    assert_eq!(t.right.as_ref().unwrap().val.unwrap(), 5);
+    assert!(t.left.is_none());
+}
+
+#[test]
+fn remove_nonexistent() {
+    let mut t = BinaryTree::<i32>::new();
+    assert!(t.remove(14).is_err());
+    assert!(t.insert(3).is_ok());
+    assert!(t.insert(5).is_ok());
+    assert!(t.insert(1).is_ok());
+    assert!(t.remove(14).is_err());
+    assert!(t.insert(14).is_ok());
+    assert!(t.remove(14).is_ok());
 }
